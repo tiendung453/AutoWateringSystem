@@ -33,12 +33,12 @@ public:
     QLabel *soil_moisture;
     QLCDNumber *lcdSoilmoisture;
     QLabel *time;
-    QTextEdit *timePump;
     QLabel *label_3;
     QLabel *label_4;
     QLabel *label_5;
     QFrame *frame;
     QFrame *frame_2;
+    QLCDNumber *lcdLastPump;
     QFrame *frame_3;
     QPushButton *pushButtonCloseRoof;
     QPushButton *pushButtonOpenRoof;
@@ -125,9 +125,6 @@ public:
         time->setStyleSheet(QString::fromUtf8("background-color: rgb(0, 0, 0);\n"
 "color: rgb(255, 255, 255);"));
         time->setAlignment(Qt::AlignCenter);
-        timePump = new QTextEdit(Dialog);
-        timePump->setObjectName("timePump");
-        timePump->setGeometry(QRect(600, 480, 131, 41));
         label_3 = new QLabel(Dialog);
         label_3->setObjectName("label_3");
         label_3->setGeometry(QRect(10, 10, 151, 21));
@@ -150,6 +147,12 @@ public:
 "background-color: rgb(85, 255, 127);"));
         frame_2->setFrameShape(QFrame::StyledPanel);
         frame_2->setFrameShadow(QFrame::Raised);
+        lcdLastPump = new QLCDNumber(frame_2);
+        lcdLastPump->setObjectName("lcdLastPump");
+        lcdLastPump->setGeometry(QRect(160, 150, 131, 41));
+        lcdLastPump->setStyleSheet(QString::fromUtf8("color: rgb(255, 255, 255);\n"
+"color: rgb(255, 0, 0);\n"
+"border-color: rgb(255, 255, 255);"));
         frame_3 = new QFrame(Dialog);
         frame_3->setObjectName("frame_3");
         frame_3->setGeometry(QRect(20, 350, 351, 201));
@@ -232,7 +235,6 @@ public:
         lcdHumidity->raise();
         time->raise();
         lcdTemperature->raise();
-        timePump->raise();
         label_3->raise();
         label_4->raise();
         label_5->raise();

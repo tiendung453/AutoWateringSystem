@@ -205,16 +205,6 @@ color: rgb(255, 255, 255);</string>
     <set>Qt::AlignCenter</set>
    </property>
   </widget>
-  <widget class="QTextEdit" name="timePump">
-   <property name="geometry">
-    <rect>
-     <x>600</x>
-     <y>480</y>
-     <width>131</width>
-     <height>41</height>
-    </rect>
-   </property>
-  </widget>
   <widget class="QLabel" name="label_3">
    <property name="geometry">
     <rect>
@@ -291,6 +281,21 @@ background-color: rgb(85, 255, 127);</string>
     <property name="frameShadow">
      <enum>QFrame::Raised</enum>
     </property>
+    <widget class="QLCDNumber" name="lcdLastPump">
+     <property name="geometry">
+      <rect>
+       <x>160</x>
+       <y>150</y>
+       <width>131</width>
+       <height>41</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">color: rgb(255, 255, 255);
+color: rgb(255, 0, 0);
+border-color: rgb(255, 255, 255);</string>
+     </property>
+    </widget>
    </widget>
   </widget>
   <widget class="QFrame" name="frame_3">
@@ -556,7 +561,6 @@ color: rgb(255, 0, 0);</string>
   <zorder>lcdHumidity</zorder>
   <zorder>time</zorder>
   <zorder>lcdTemperature</zorder>
-  <zorder>timePump</zorder>
   <zorder>label_3</zorder>
   <zorder>label_4</zorder>
   <zorder>label_5</zorder>

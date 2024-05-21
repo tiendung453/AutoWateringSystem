@@ -55,5 +55,6 @@ private:
     QLCDNumber *lcdTemperature;
     QLCDNumber *lcdHumidity;
     QLCDNumber *lcdSoilmoisture;
+    QLCDNumber *lcdLastPump;
 };
 #endif // DIALOG_H

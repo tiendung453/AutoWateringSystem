@@ -92,6 +92,11 @@ void loop()
 {
   timeClient.update(); // Cập nhật thời gian từ NTP server
   int currentHour = timeClient.getHours(); // lấy giờ từ ntpclient
+  
+  displayLcd();
+  selectModeButtonLcd();
+
+
   if (Serial.available() > 0) 
   {
     char command = Serial.read();
@@ -104,6 +109,16 @@ void loop()
       normalMode();
     }
   }
+}
+
+void displayLcd()
+{
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Press button to change value");
+  lcd.setCursor(0, 1);
+  lcd.print("1 2 3");
+
 }
 
 void displayTempAndHumidity() 
@@ -127,38 +142,18 @@ void displayRealTime()
   lcd.print(timeClient.getFormattedTime());
 }
 
-void readAndPrintDHT11() 
+void displayMoistureValue()
 {
-  float temp = dht.readTemperature();
-  float humidity = dht.readHumidity();
-  if (!isnan(temp) && !isnan(humidity)) 
-  {
-    Serial.println(temp);
-    Serial.println(humidity);
-  } else {
-    Serial.println("Failed to read from DHT sensor!");
-  }
-}
-
-void readAndPrintMoisture() 
-{
-  int moistureValue = analogRead(moistureSensorPin); // đọc giá trị cảm biến độ ẩm đất  
-  Serial.print("Moisture Value: ");
-  Serial.println(moistureValue);
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Time: ");
+  lcd.print(readMoistureSensor());
 }
 
 int readMoistureSensor()
 {
   int moistureValue = analogRead(moistureSensorPin); // đọc giá trị cảm biến độ ẩm đất
   return moistureValue;
-}
-
-void checkRainSensor() 
-{
-  int sensorValue = digitalRead(rainSensorPin); // Đọc giá trị từ cảm biến mưa
-  // Hiển thị giá trị trên Serial Monitor
-  Serial.print("Sensor value: ");
-  Serial.println(sensorValue);
 }
 
 // mở mái che
@@ -192,9 +187,6 @@ void onPump()
   digitalWrite(pumpPin4, LOW);
   ledcWrite(1, 200); // Sử dụng kênh PWM 1 cho enablePinB với giá trị 200
 
-  // Gửi thông tin thời gian bơm chạy qua Serial
-  Serial.print("Pump ON at ");
-  Serial.println(timeClient.getFormattedTime());
 }
 
 // tắt bơm
@@ -233,6 +225,7 @@ void autoMode()
   float temp = dht.readTemperature();
   float humidity = dht.readHumidity();
   int moistureValue = analogRead(moistureSensorPin);
+  int currentHour = timeClient.getHours();
 
 
   if (!isnan(temp) && !isnan(humidity)) 
@@ -307,5 +300,42 @@ bool checkRain()
   if(sensorValue == 0)
   {
     return false;
+  }
+}
+
+void selectModeButtonLcd()
+{
+  int NowbuttonState = digitalRead(buttonPin);
+  
+  if (NowbuttonState != lastButtonState)
+  {
+    lastDebounceTime = millis();
+  }
+
+  if ((millis() - lastDebounceTime) > debounceDelay) 
+  {
+    if (NowbuttonState != buttonState) 
+    {
+      buttonState = NowbuttonState;
+      if (buttonState == LOW) {
+        dem = dem+1;
+      }
+    }
+  }
+
+
+  lastButtonState = NowbuttonState;
+
+  if(dem == 1)
+  {
+    displayTempAndHumidity();
+  }
+  if(dem == 2)
+  {
+    displayRealTime();
+  }
+  if(dem == 3)
+  {
+    displayMoistureValue();
   }
 }

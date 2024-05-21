@@ -176,12 +176,13 @@ void Dialog::ReadData(){
         QList<QByteArray> values = data.split(',');
         qDebug()<< values.size();
 
-        if (values.size() == 3)
+        if (values.size() == 4)
         {
-            bool tempOk, humiOk, moistureOk;
+            bool tempOk, humiOk, moistureOk, timeOk;
             double temp = values[0].toDouble(&tempOk);
             double humi = values[1].toDouble(&humiOk);
             int moisture = values[2].toInt(&moistureOk);
+            int timePump = values[3].toInt(&timeOk);
 
             if (tempOk)
             {
@@ -194,6 +195,10 @@ void Dialog::ReadData(){
             if (moistureOk)
             {
                 ui->lcdSoilmoisture->display(moisture);
+            }
+            if (timeOk)
+            {
+                ui->lcdSoilmoisture->display(timePump);
             }
         }
     }
