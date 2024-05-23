@@ -104,7 +104,7 @@ void loop()
     {
       autoMode();
     }
-    if (command == '0')
+    if (command != '0')
     {
       normalMode();
     }
