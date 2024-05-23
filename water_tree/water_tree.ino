@@ -8,7 +8,7 @@ char ssid[] = "Phong 601"; // Tên của mạng WiFi
 char pass[] = "94648089";  // Mật khẩu của mạng WiFi
 
 WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "pool.ntp.org", 7 * 3600); // Cấu hình NTP client
+NTPClient timeClient(ntpUDP, "pool.ntp.org", 7 * 3600); // Cấu hình NTP client , 7*3600 để lấy thời gian tại múi giờ số 7
 
 #define I2C_ADDR    0x27
 #define LCD_COLUMNS 16
@@ -23,15 +23,15 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org", 7 * 3600); // Cấu hình NTP clien
 #define autoPumpButtonPin 35  // khai báo nút bơm ngay lập tức 
 #define ledPin 15             // Chân kết nối đèn LED báo trạng thái
 
-#define soilWet 500
-#define soilDry 75
-#define humiMax 70
-#define humiMin 50
-#define tempMax 24
-#define tempMin 18
+#define soilWet 500 // khai báo ngưỡng đất ẩm 
+#define soilDry 75  // khai báo ngưỡng đất khô
+#define humiMax 70  // độ ẩm không khí cho phép max
+#define humiMin 50  // độ ẩm không khí cho phép 
+#define tempMax 24  // nhiệt độ cao nhất cho phép
+#define tempMin 18  // nhiệt độ thấp nhất cho phép
 
-#define timePumpAm 6
-#define timePumpAm 18
+#define timePumpAm 6 // thời gian tự động bơm vào buổi sáng
+#define timePumpPm 18 // thời gian tự động bơm vào buổi chiều 
 
 String command; // tạo biến đọc dữ liệu từ serial
 
@@ -39,31 +39,31 @@ DHT dht(DHTPIN, DHTTYPE); // Khởi tạo đối tượng DHT
 
 LiquidCrystal_I2C lcd(I2C_ADDR, LCD_COLUMNS, LCD_ROWS); // Khởi tạo đối tượng LCD
 
-int buttonState = HIGH;
-int lastButtonState = HIGH;
-unsigned long lastDebounceTime = 0;
-unsigned long debounceDelay = 50;
-int dem = 0;
+int buttonState = HIGH;   // trạng thái nút nhấn lúc đầu
+int lastButtonState = HIGH; // trạng thái nút nhấn lúc sau
+unsigned long lastDebounceTime = 0; // thời gian chạy
+unsigned long debounceDelay = 50;  // thời gian trì trệ
+int dem = 0; // khai báo biến đếm để lấy giá trị số lần ấn nút
 
 // khai báo các chân 
-const int motorPin1 = 13;  // Connect to IN1 on L298N
-const int motorPin2 = 12;  // Connect to IN2 on L298N
-const int enablePinA = 14; // Connect to ENA on L298N
-const int pumpPin3 = 27;   // IN3 on L298N
-const int pumpPin4 = 25;   // IN4 on L298N
-const int enablePinB = 33; // ENB on L298N
+const int motorPin1 = 13;  // kết nối với IN1 trên L298N
+const int motorPin2 = 12;  // kết nối với IN2 trên L298N
+const int enablePinA = 14; // kết nối với ENA trên L298N
+const int pumpPin3 = 27;   // kết nối với IN3 trên L298N
+const int pumpPin4 = 25;   // kết nối với IN4 trên L298N
+const int enablePinB = 33; // kết nối với ENB trên L298N
 
 
 
 void setup() 
 {
   Serial.begin(115200);
-  pinMode(buttonPin, INPUT_PULLUP);
-  pinMode(autoPumpButtonPin, INPUT_PULLUP);
-  pinMode(ledPin, OUTPUT);
+  pinMode(buttonPin, INPUT_PULLUP); // chân nút nhấn là chế độ input_pullup
+  pinMode(autoPumpButtonPin, INPUT_PULLUP); // chân nút bơm là chế độ input_pullup
+  pinMode(ledPin, OUTPUT); // chân led là output
   pinMode(2, OUTPUT);
 
-  // cấu hình các chân 
+  // cấu hình các chân bơm và chân motor
   pinMode(motorPin1, OUTPUT);
   pinMode(motorPin2, OUTPUT);
   pinMode(enablePinA, OUTPUT);
@@ -71,21 +71,21 @@ void setup()
   pinMode(pumpPin4, OUTPUT);
   pinMode(enablePinB, OUTPUT);
 
-  lcd.init();
-  lcd.backlight();
-  lcd.setCursor(0, 0);
+  lcd.init(); // khởi tạo đối tượng lcd
+  lcd.backlight(); // bật đèn nền 
+  lcd.setCursor(0, 0); // bắt đầu tại vị trí (0 0);
   lcd.print("Press button to");
   lcd.setCursor(0, 1);
   lcd.print("get data");
 
   WiFi.begin(ssid, pass);
-  while (WiFi.status() != WL_CONNECTED) 
+  while (WiFi.status() != WL_CONNECTED) // nếu trang thái wifi chưa kết nối thì in ra ....
   {
     delay(500);
     Serial.print(".");
   }
   Serial.println("WiFi connected");
-  timeClient.begin();
+  timeClient.begin();  // khởi tạo đối tượng timeClient
 }
 
 void loop() 
@@ -93,7 +93,7 @@ void loop()
   timeClient.update(); // Cập nhật thời gian từ NTP server
   int currentHour = timeClient.getHours(); // lấy giờ từ ntpclient
   
-  displayLcd();
+  displayLcd(); 
   selectModeButtonLcd();
 
 
@@ -222,10 +222,10 @@ void autoMode()
 {
   digitalWrite(2, HIGH);
   // Đọc giá trị cảm biến và gửi qua Serial
-  float temp = dht.readTemperature();
-  float humidity = dht.readHumidity();
-  int moistureValue = analogRead(moistureSensorPin);
-  int currentHour = timeClient.getHours();
+  float temp = dht.readTemperature(); // đọc nhiệt độ
+  float humidity = dht.readHumidity(); // đọc độ ẩm 
+  int moistureValue = analogRead(moistureSensorPin); // đọc giá trị độ ẩm đất
+  int currentHour = timeClient.getHours(); // lấy về thời gian cụ thể là giờ
 
 
   if (!isnan(temp) && !isnan(humidity)) 
