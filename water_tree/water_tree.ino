@@ -4,8 +4,8 @@
 #include <LiquidCrystal_I2C.h>
 #include <DHT.h>
 
-char ssid[] = "Phong 601"; // Tên của mạng WiFi
-char pass[] = "94648089";  // Mật khẩu của mạng WiFi
+char ssid[] = "Okee"; // Tên của mạng WiFi
+char pass[] = "04052005";  // Mật khẩu của mạng WiFi
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", 7 * 3600); // Cấu hình NTP client , 7*3600 để lấy thời gian tại múi giờ số 7
@@ -14,14 +14,12 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org", 7 * 3600); // Cấu hình NTP clien
 #define LCD_COLUMNS 16
 #define LCD_ROWS    2
 
-#define DHTPIN 2     // Chân kết nối cảm biến DHT11
+#define DHTPIN 15     // Chân kết nối cảm biến DHT11
 #define DHTTYPE DHT11 // Loại cảm biến là DHT11
 
 #define moistureSensorPin 26 // Chân analog input kết nối với cảm biến độ ẩm đất
 #define buttonPin 5           // Chân kết nối nút nhấn
 #define rainSensorPin 4       // Chân kết nối với cảm biến mưa 
-#define autoPumpButtonPin 35  // khai báo nút bơm ngay lập tức 
-#define ledPin 15             // Chân kết nối đèn LED báo trạng thái
 
 #define soilWet 500 // khai báo ngưỡng đất ẩm 
 #define soilDry 75  // khai báo ngưỡng đất khô
@@ -33,7 +31,8 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org", 7 * 3600); // Cấu hình NTP clien
 #define timePumpAm 6 // thời gian tự động bơm vào buổi sáng
 #define timePumpPm 18 // thời gian tự động bơm vào buổi chiều 
 
-String command; // tạo biến đọc dữ liệu từ serial
+char command; // tạo biến đọc dữ liệu từ serial
+char command1;
 
 DHT dht(DHTPIN, DHTTYPE); // Khởi tạo đối tượng DHT
 
@@ -53,15 +52,26 @@ const int pumpPin3 = 27;   // kết nối với IN3 trên L298N
 const int pumpPin4 = 25;   // kết nối với IN4 trên L298N
 const int enablePinB = 33; // kết nối với ENB trên L298N
 
+bool autoModeActive;
+bool cancelAutoModeActive;
+bool openRoof;
+bool closeRoof;
+bool onPumpM;
+bool offPumpM;
 
+unsigned long previousMillis = 0;
+
+bool openState = false;        
+bool commandProcessed = false;   
+unsigned long openStartTime = 0; 
 
 void setup() 
 {
   Serial.begin(115200);
+  pinMode(moistureSensorPin, INPUT);
   pinMode(buttonPin, INPUT_PULLUP); // chân nút nhấn là chế độ input_pullup
-  pinMode(autoPumpButtonPin, INPUT_PULLUP); // chân nút bơm là chế độ input_pullup
-  pinMode(ledPin, OUTPUT); // chân led là output
-  pinMode(2, OUTPUT);
+  pinMode(rainSensorPin, INPUT);
+
 
   // cấu hình các chân bơm và chân motor
   pinMode(motorPin1, OUTPUT);
@@ -92,42 +102,128 @@ void loop()
 {
   timeClient.update(); // Cập nhật thời gian từ NTP server
   int currentHour = timeClient.getHours(); // lấy giờ từ ntpclient
-  
-  displayLcd(); 
+ 
   selectModeButtonLcd();
+  displayInQt();
 
-
-  if (Serial.available() > 0) 
+  checkSerial();
+  //Serial.println(command);
+  if(autoModeActive)
   {
-    char command = Serial.read();
-    if (command == '1') 
-    {
-      autoMode();
-    }
-    if (command != '1')
-    {
-      normalMode();
-    }
+    autoMode();   
+  }
+  if(cancelAutoModeActive)
+  {
+    autoModeActive = false;
+    stopRoofDoor();
+  }
+  if(openRoof)
+  {
+    openRoofDoor();
+  }
+  if(closeRoof)
+  {
+    closeRoofDoor();
+  }
+  if(onPumpM)
+  {
+    onPump();
+  }
+  if(offPumpM)
+  {
+    offPump();
   }
 }
 
+void threeSecond()
+{
+    if (openState && millis() - openStartTime >= 2000) 
+  {
+    stopRoofDoor();
+    commandProcessed = false; 
+  }
+}
+
+void checkSerial()
+{
+    if (Serial.available() > 0) 
+    {
+      command = Serial.read();
+      if(command == '1')
+      {
+        autoModeActive = true;
+        cancelAutoModeActive = false;
+        openRoof = false;
+        closeRoof = false;
+        onPumpM = false;
+        offPumpM = false;
+      }
+      if (command == '0')
+      {
+        autoModeActive = false;
+        cancelAutoModeActive = true;
+        openRoof = false;
+        closeRoof = false;
+        onPumpM = false;
+        offPumpM = false;
+      }
+      if (command == '2')
+      {
+        autoModeActive = false;
+        cancelAutoModeActive = false;
+        openRoof = true;
+        closeRoof = false;
+        onPumpM = false;
+        offPumpM = false;
+      }
+      if (command == '3')
+      {
+        autoModeActive = false;
+        cancelAutoModeActive = false;
+        openRoof = false;
+        closeRoof = true;
+        onPumpM = false;
+        offPumpM = false;
+      }
+      if (command == '4')
+      {
+        autoModeActive = false;
+        cancelAutoModeActive = false;
+        openRoof = false;
+        closeRoof = false;
+        onPumpM = true;
+        offPumpM = false;
+      }
+      if (command == '5')
+      {
+        autoModeActive = false;
+        cancelAutoModeActive = false;
+        openRoof = false;
+        closeRoof = false;
+        onPumpM = false;
+        offPumpM = true;
+      }
+      
+    }
+       
+}
+
+
+
 void displayLcd()
 {
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Press button to change value");
+  lcd.setCursor(0, 0); // bắt đầu tại vị trí (0 0);
+  lcd.print("Press button to");
   lcd.setCursor(0, 1);
-  lcd.print("1 2 3");
-
+  lcd.print("get data");
 }
 
 void displayTempAndHumidity() 
 {
-  lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Temp: ");
   lcd.print(dht.readTemperature());
-  lcd.print(" C");
+  lcd.print(" C  ");
   lcd.setCursor(0, 1);
   lcd.print("Humi: ");
   lcd.print(dht.readHumidity());
@@ -136,107 +232,69 @@ void displayTempAndHumidity()
 
 void displayRealTime() 
 {
-  lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Time: ");
   lcd.print(timeClient.getFormattedTime());
+  lcd.print("   ");
+  lcd.setCursor(0, 1);
+  lcd.print("                      ");
 }
 
 void displayMoistureValue()
 {
-  lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("Time: ");
-  lcd.print(readMoistureSensor());
-}
-
-int readMoistureSensor()
-{
-  int moistureValue = analogRead(moistureSensorPin); // đọc giá trị cảm biến độ ẩm đất
-  return moistureValue;
+  lcd.print("Moisture: ");
+  lcd.print(analogRead(moistureSensorPin));
+  lcd.setCursor(0, 1);
+  lcd.print("                      ");
 }
 
 // mở mái che
 void openRoofDoor() 
 {
+  analogWrite(enablePinA, 200);
   digitalWrite(motorPin1, HIGH);
   digitalWrite(motorPin2, LOW);
-  ledcWrite(0, 200); // Sử dụng kênh PWM 0 cho enablePinA với giá trị 200
 }
 
 // đóng mái che
 void closeRoofDoor() 
 {
+  analogWrite(enablePinA, 200);
   digitalWrite(motorPin1, LOW);
   digitalWrite(motorPin2, HIGH);
-  ledcWrite(0, 200); // Sử dụng kênh PWM 0 cho enablePinA với giá trị 200
 }
 
 // dừng mái che
 void stopRoofDoor() 
 {
+  analogWrite(enablePinA, 0);
   digitalWrite(motorPin1, LOW);
   digitalWrite(motorPin2, LOW);
-  ledcWrite(0, 0); // Dừng kênh PWM 0
 }
 
 // bật bơm
 void onPump() 
 {
+  analogWrite(enablePinB, 255);
   digitalWrite(pumpPin3, HIGH);
   digitalWrite(pumpPin4, LOW);
-  ledcWrite(1, 200); // Sử dụng kênh PWM 1 cho enablePinB với giá trị 200
-
 }
 
 // tắt bơm
 void offPump() 
 {
+  analogWrite(enablePinB, 0);
   digitalWrite(pumpPin3, LOW);
   digitalWrite(pumpPin4, LOW);
-  ledcWrite(1, 0); // Dừng kênh PWM 1
-}
-
-void buttonPump() 
-{
-  int reading = digitalRead(autoPumpButtonPin); // đọc tín hiệu chân nút autoPump
-  if (reading != lastButtonState) 
-  {
-    lastDebounceTime = millis();
-  }
-  if ((millis() - lastDebounceTime) > debounceDelay) 
-  {
-    if (reading != buttonState) 
-    {
-      buttonState = reading;
-      if (buttonState == LOW) 
-      {
-        onPump();
-      }
-    }
-  }
-  lastButtonState = reading;
 }
 
 void autoMode() 
 {
-  digitalWrite(2, HIGH);
-  // Đọc giá trị cảm biến và gửi qua Serial
   float temp = dht.readTemperature(); // đọc nhiệt độ
   float humidity = dht.readHumidity(); // đọc độ ẩm 
   int moistureValue = analogRead(moistureSensorPin); // đọc giá trị độ ẩm đất
   int currentHour = timeClient.getHours(); // lấy về thời gian cụ thể là giờ
-
-
-  if (!isnan(temp) && !isnan(humidity)) 
-  {
-    Serial.print(temp); // gửi nhiệt độ vào serial
-    Serial.print(",");
-    Serial.print(humidity); // gửi độ ẩm vào serail
-    Serial.print(",");
-    Serial.println(moistureValue); // gửi độ ẩm đất vào serial
-  }
-
   if ((temp > tempMax) || (humidity < humiMin) || (moistureValue > soilDry))
   {
     onPump();
@@ -253,40 +311,26 @@ void autoMode()
       openRoofDoor();
     }
   }
-
 }
-void normalMode()
+
+void displayInQt()
 {
-    digitalWrite(2, LOW);
-  // Đọc giá trị cảm biến và gửi qua Serial
-  float temp = dht.readTemperature();
-  float humidity = dht.readHumidity();
-  int moistureValue = analogRead(moistureSensorPin);
+  //Đọc giá trị cảm biến và gửi qua Serial
+  float temp = dht.readTemperature(); // đọc nhiệt độ
+  float humidity = dht.readHumidity(); // đọc độ ẩm 
+  int moistureValue = analogRead(moistureSensorPin); // đọc giá trị độ ẩm đất
+  int currentHour = timeClient.getHours(); // lấy về thời gian cụ thể là giờ
 
   if (!isnan(temp) && !isnan(humidity)) 
   {
-    Serial.print(temp);
+    Serial.print(temp); // gửi nhiệt độ vào serial
     Serial.print(",");
-    Serial.print(humidity);
+    Serial.print(humidity); // gửi độ ẩm vào serail
     Serial.print(",");
-    Serial.println(moistureValue);
-  }
-  char command = Serial.read(); // đọc giá trị ở bộ đệm serial
-  if(command == '2')
-  {
-    openRoofDoor();
-  }
-  if (command == '3')
-  {
-    closeRoofDoor();
-  }
-  if (command == '4')
-  {
-    onPump();
-  }
-  if (command == '5')
-  {
-    offPump();
+    Serial.print(moistureValue); // gửi độ ẩm đất vào serial
+    Serial.print(",");
+    Serial.println(currentHour); // gửi độ ẩm đất vào serial
+
   }
 }
 
@@ -319,13 +363,20 @@ void selectModeButtonLcd()
       buttonState = NowbuttonState;
       if (buttonState == LOW) {
         dem = dem+1;
+        if(dem == 4)
+        {
+          dem = 0;
+        }
+        Serial.println(dem);
       }
     }
   }
 
-
   lastButtonState = NowbuttonState;
-
+  if(dem == 0)
+  {
+    displayLcd();
+  }
   if(dem == 1)
   {
     displayTempAndHumidity();
